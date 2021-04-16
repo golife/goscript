@@ -14,15 +14,22 @@ func TestInteger(t *testing.T) {
 }
 
 func TestSimpleExpression(t *testing.T) {
-	test_handler(t, "(+ 5 3)", 8)
+	test_handler(t, "5 + 3", 8)
+	test_handler(t, "5 + 3 + 1", 9)
+	test_handler(t, "2 * 3", 6)
+	test_handler(t, "2 * 3 * 4", 24)
 }
 
 func TestSimpleExpressionWithComments(t *testing.T) {
-	test_handler(t, ";comment 1\n(* 5 3); comment 2", 15)
+	test_handler(t, ";comment 1\n 5 * 3; comment 2", 15)
 }
 
 func TestComplexExpression(t *testing.T) {
-	test_handler(t, "(- (* 9 (+ 2 3)) (+ (/ 20 (% 15 10)) 1))", 40)
+	test_handler(t, "8 - (2+3) * 2", -2)
+	test_handler(t, "8 - (2+3) * 2 - 1", -3)
+	test_handler(t, "8 - (2+3) * (2 - 2)", 8)
+	test_handler(t, "8 * (2+3 - 1*3*2) - (2 + 2 -1)", -11)
+	test_handler(t, "8 * (2+3 - 2*3*(2+3)) - (2 + 2 -1)", -203)
 }
 
 func test_handler(t *testing.T, src string, expected int) {

@@ -1,9 +1,6 @@
-// Copyright (c) 2014, Rob Thornton
-// All rights reserved.
-// This source code is governed by a Simplied BSD-License. Please see the
-// LICENSE included in this distribution for a copy of the full license
-// or, if one is not included, you may also find a copy at
-// http://opensource.org/licenses/BSD-2-Clause
+// Copyright 2021 The Goscript Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
 
 package parse_test
 
@@ -21,12 +18,14 @@ const (
 )
 
 func TestParseFileBasic(t *testing.T) {
-	f := parse.ParseFile("test.calc", "(+ 3 5)")
+	f := parse.ParseFile("test.gs", "1+(3+4)*3")
 	i := 0
 
-	var types = []int{FILE, BINARY, BASIC, BASIC}
+	ast.Print(f.Root)
 
-	ast.Walk(f, func(node ast.Node) {
+	var types = []int{FILE, BINARY, BASIC, BINARY, BINARY, BASIC, BASIC, BASIC}
+
+	ast.Walk(f, 0, func(node ast.Node, level int) {
 		switch node.(type) {
 		case *ast.File:
 			if types[i] != FILE {
@@ -46,13 +45,14 @@ func TestParseFileBasic(t *testing.T) {
 }
 
 func TestParseNested(t *testing.T) {
-	f := parse.ParseFile("test.calc", ";comment\n(+ (/ 9 3) 5 (- 3 1))")
+	f := parse.ParseFile("test.gs", ";comment;\n 1+(3 + 4 + 3*(2-3) )*3")
 	i := 0
 
-	var types = []int{FILE, BINARY, BINARY, BASIC, BASIC, BASIC, BINARY,
-		BASIC, BASIC}
+	ast.Print(f.Root)
 
-	ast.Walk(f, func(node ast.Node) {
+	var types = []int{FILE, BINARY, BASIC, BINARY, BINARY, BINARY, BASIC, BASIC, BINARY, BASIC, BINARY, BASIC, BASIC, BASIC}
+
+	ast.Walk(f, 0, func(node ast.Node, level int) {
 		switch node.(type) {
 		case *ast.File:
 			if types[i] != FILE {
@@ -71,25 +71,23 @@ func TestParseNested(t *testing.T) {
 	})
 }
 
-func TestTemp(t *testing.T) {
+func TestInvalid(t *testing.T) {
 	var tests = []string{
-		"+ 3 5)",
-		"(- 5)",
-		"(3 5 +)",
-		"(3 + 4)",
-		"(+ 6 2",
-		"(- 4 5)2",
-		"(d",
-		"(* a 3)",
-		"(/ 5 b)",
-		"(% / d)",
-		"(& 3 5)",
-		"((+ 3 5) 5)",
-		"(* (- 2 6) (+ 4 2)())",
+		"+",
+		"+1",
+		"(6",
+		"(6+2",
+		"(6+2-",
+		"((6+2-",
+		"6)",
+		"6+2)",
+		"6+2-)",
+		"(6+2-))",
+		"d",
 		";comment",
 	}
 	for _, src := range tests {
-		if f := parse.ParseFile("test", src); f != nil {
+		if f := parse.ParseFile("test.gs", src); f != nil {
 			t.Log(src, "- not nil")
 			t.Fail()
 		}

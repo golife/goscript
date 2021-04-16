@@ -7,22 +7,22 @@
 
 package ast
 
-type Func func(Node)
+type Func func(Node, int)
 
-func Walk(node Node, f Func) {
+func Walk(node Node, level int, f Func) {
 	if node == nil {
 		panic("Node is nil!")
 	}
 
 	if f != nil {
-		f(node)
+		f(node, level)
 	}
 	switch n := node.(type) {
 	case *File:
-		Walk(n.Root, f)
+		Walk(n.Root, level, f)
 	case *BinaryExpr:
 		for _, v := range n.List {
-			Walk(v, f)
+			Walk(v, level+1, f)
 		}
 	}
 }

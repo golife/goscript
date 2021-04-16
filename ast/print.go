@@ -12,15 +12,18 @@ import (
 )
 
 func Print(node Node) {
-	Walk(node, print)
+	Walk(node, 0, print)
 }
 
-func print(node Node) {
+func print(node Node, level int) {
+	for i := 0; i < level; i++ {
+		fmt.Print(".  ")
+	}
 	switch n := node.(type) {
 	case *BasicLit:
-		fmt.Println("BasicType:", n.LitPos, n.Lit)
+		fmt.Println("BasicType:", "pos:", n.LitPos, "value:", n.Lit)
 	case *BinaryExpr:
-		fmt.Println("BinaryExpr:", n.OpPos, n.Op)
+		fmt.Printf("BinaryExpr: opPos: %v, op: %v, source pos: %v-%v\n",  n.OpPos, n.Op.String(), n.Opening, n.Closing)
 	case *File:
 		fmt.Println("File:")
 	default:

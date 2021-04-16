@@ -16,27 +16,31 @@ type Node interface {
 	End() token.Pos
 }
 
+// BasicLit
+// Expression(BinaryExpr)
 type Expr interface {
 	Node
 	exprNode()
 }
 
+type Expression struct {
+	Opening token.Pos
+	Closing token.Pos
+}
+
+// 字面值
 type BasicLit struct {
 	LitPos token.Pos
 	Kind   token.Token
 	Lit    string
 }
 
+// 二元操作
 type BinaryExpr struct {
 	Expression
 	Op    token.Token
 	OpPos token.Pos
 	List  []Expr
-}
-
-type Expression struct {
-	Opening token.Pos
-	Closing token.Pos
 }
 
 type File struct {
