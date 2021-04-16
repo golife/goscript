@@ -1,23 +1,50 @@
-# Goscript v0.1.1
+# Goscript v0.2.0
 
-用Go实现一个简单的计算器
+用Go实现Go语法子集的脚本语言
 
-# 规范
+# 支持以下语法
 
-```
-expression -> term { addOp term }*
-addOp -> "+" | "-"
-term -> factor { mulop factor }*
-mulop -> "*" | "/"
-factor -> NUM | "(" expression ")"  
-```
+## 变量
 
-## 示例
+支持 int, float, bool
 
 ```
-2 + 3
-(3+1) * (4/2)
-1 * 2 * 3 * 4 * 5
+var a int
+var b float
+var c bool
+a = 12
+b = 12.0
+c = true
+
+a1 := 12
+b2 := 12.0
+c3 := true
+```
+
+# if else
+```
+if expression {
+    //...
+} else {
+    //...
+}
+
+```
+
+# function
+
+```
+func funcname (a, b int) : int {
+    return a + b
+}
+```
+
+# for
+
+```
+for i := 0; i < 10; i++ {
+    //...
+}
 ```
 
 ## 用法
