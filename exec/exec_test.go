@@ -18,6 +18,7 @@ func TestSimpleExpression(t *testing.T) {
 	test_handler(t, "5 + 3 + 1", 9)
 	test_handler(t, "2 * 3", 6)
 	test_handler(t, "2 * 3 * 4", 24)
+	test_handler(t, "1 * 2 * 3 * 4 * 5", 120)
 }
 
 func TestSimpleExpressionWithComments(t *testing.T) {
