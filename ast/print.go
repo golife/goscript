@@ -23,7 +23,7 @@ func print(node Node, level int) {
 	case *BasicLit:
 		fmt.Println("BasicType:", "pos:", n.LitPos, "value:", n.Lit)
 	case *BinaryExpr:
-		fmt.Printf("BinaryExpr: opPos: %v, op: %v, source pos: %v-%v\n",  n.OpPos, n.Op.String(), n.Opening, n.Closing)
+		fmt.Printf("BinaryExpr: opPos: %v, op: %v, source pos: %v-%v\n",  n.OpPos, n.Op.String(), n.Pos(), n.End())
 	case *File:
 		fmt.Println("File:")
 	default:

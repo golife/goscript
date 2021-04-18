@@ -54,22 +54,21 @@ func (c *exec) execBinaryExpr(b *ast.BinaryExpr) int {
 	var tmp int
 
 	// 1 + 2 先用1作为tmp
-	tmp = c.execNode(b.List[0])
+	tmp = c.execNode(b.X)
 
 	// 再计算之后的
-	for _, node := range b.List[1:] {
-		switch b.Op {
-		case token.ADD:
-			tmp += c.execNode(node)
-		case token.SUB:
-			tmp -= c.execNode(node)
-		case token.MUL:
-			tmp *= c.execNode(node)
-		case token.QUO:
-			tmp /= c.execNode(node)
-		case token.REM:
-			tmp %= c.execNode(node)
-		}
+	node := b.Y
+	switch b.Op {
+	case token.ADD:
+		tmp += c.execNode(node)
+	case token.SUB:
+		tmp -= c.execNode(node)
+	case token.MUL:
+		tmp *= c.execNode(node)
+	case token.QUO:
+		tmp /= c.execNode(node)
+	case token.REM:
+		tmp %= c.execNode(node)
 	}
 
 	return tmp

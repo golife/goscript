@@ -27,31 +27,28 @@ func TestBasicLit(t *testing.T) {
 }
 
 func TestBinaryExpr(t *testing.T) {
-	// (+ 3 5)
+	// 3 + 5
 	x := &ast.BasicLit{
-		LitPos: token.Pos(4),
+		LitPos: token.Pos(1),
 		Kind:   token.INTEGER,
 		Lit:    "3",
 	}
 	y := &ast.BasicLit{
-		LitPos: token.Pos(6),
+		LitPos: token.Pos(5),
 		Kind:   token.INTEGER,
 		Lit:    "5",
 	}
 	b := &ast.BinaryExpr{
-		Expression: ast.Expression{
-			Opening: token.Pos(1),
-			Closing: token.Pos(7),
-		},
 		Op:    token.ADD,
 		OpPos: token.Pos(2),
-		List:  []ast.Expr{x, y},
+		X: x,
+		Y: y,
 	}
 
 	if b.Pos() != token.Pos(1) {
 		t.Fatal("BinaryExpr: Expected: 1 Got:", b.Pos())
 	}
-	if b.End() != token.Pos(7) {
-		t.Fatal("BinaryExpr: Expected: 7 Got:", b.End())
+	if b.End() != token.Pos(6) {
+		t.Fatal("BinaryExpr: Expected: 6 Got:", b.End())
 	}
 }

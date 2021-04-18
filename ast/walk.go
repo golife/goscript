@@ -21,8 +21,7 @@ func Walk(node Node, level int, f Func) {
 	case *File:
 		Walk(n.Root, level, f)
 	case *BinaryExpr:
-		for _, v := range n.List {
-			Walk(v, level+1, f)
-		}
+		Walk(n.X, level+1, f)
+		Walk(n.Y, level+1, f)
 	}
 }

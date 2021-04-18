@@ -1,9 +1,6 @@
-// Copyright (c) 2014, Rob Thornton
-// All rights reserved.
-// This source code is governed by a Simplied BSD-License. Please see the
-// LICENSE included in this distribution for a copy of the full license
-// or, if one is not included, you may also find a copy at
-// http://opensource.org/licenses/BSD-2-Clause
+// Copyright 2021 The Goscript Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
 
 package ast
 
@@ -11,21 +8,16 @@ import (
 	"github.com/golife/goscript/token"
 )
 
+// Node: Expr
 type Node interface {
 	Pos() token.Pos
 	End() token.Pos
 }
 
-// BasicLit
-// Expression(BinaryExpr)
+// Expr: BasicLit, BinaryExpr
 type Expr interface {
 	Node
 	exprNode()
-}
-
-type Expression struct {
-	Opening token.Pos
-	Closing token.Pos
 }
 
 // 字面值
@@ -35,12 +27,12 @@ type BasicLit struct {
 	Lit    string
 }
 
-// 二元操作
+// 二元操作 X op Y
 type BinaryExpr struct {
-	Expression
-	Op    token.Token
+	X     Expr
 	OpPos token.Pos
-	List  []Expr
+	Op    token.Token
+	Y     Expr
 }
 
 type File struct {
@@ -48,12 +40,12 @@ type File struct {
 }
 
 func (b *BasicLit) Pos() token.Pos   { return b.LitPos }
-func (e *Expression) Pos() token.Pos { return e.Opening }
+func (b *BinaryExpr) Pos() token.Pos { return b.X.Pos() } // left's pos
 func (f *File) Pos() token.Pos       { return f.Root.Pos() }
 
 func (b *BasicLit) End() token.Pos   { return b.LitPos + token.Pos(len(b.Lit)) }
-func (e *Expression) End() token.Pos { return e.Closing }
+func (b *BinaryExpr) End() token.Pos { return b.Y.End() } // right's end
 func (f *File) End() token.Pos       { return f.Root.End() }
 
 func (b *BasicLit) exprNode()   {}
-func (e *Expression) exprNode() {}
+func (b *BinaryExpr) exprNode()   {}
