@@ -55,7 +55,7 @@ func (c *exec) execBasicLit(n *ast.BasicLit) int {
 func (c *exec) execUnaryExpr(b *ast.UnaryExpr) int {
 	switch b.Op {
 	case token.ADD:
-		return c.execNode(b.X)
+		return c.execNode(b.X) // b.X 肯定是 *ast.UnaryExpr, 但学是从 execNode开始吧
 	case token.SUB:
 		return -c.execNode(b.X)
 	}
