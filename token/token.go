@@ -7,6 +7,8 @@
 
 package token
 
+import "strconv"
+
 type Token int
 
 const (
@@ -16,35 +18,117 @@ const (
 	ILLEGAL
 	COMMENT
 
+	// 字面值
 	lit_start
-	INTEGER
+
+	INT // 1
+	FLOAT   // 1.2
+	CHAR    // 'a'
+	STRING  // "a"
+
 	lit_end
 
+	// 操作
 	op_start
-	LPAREN
-	RPAREN
-	ADD
-	SUB
-	MUL
-	QUO
-	REM
+
+	IDENT // funcname, var name
+
+	ADD // +
+	SUB // -
+	MUL // *
+	QUO // /
+	REM // %
+
+	LPAREN // (
+	RPAREN // )
+	LBRACK // [
+	RBRACK // ]
+	LBRACE // {
+	RBRACE // }
+
+	EQL    // ==
+	LSS    // <
+	GTR    // >
+	ASSIGN // =
+	NOT    // !
+
+	NEQ // !=
+	LEQ // <=
+	GEQ // >=
+
+	DEFINE // :=
+
 	op_end
+
+	keyword_beg
+
+	IF
+	ELSE
+	FOR
+	FUNC
+	RETURN
+	VAR
+
+	keyword_end
 
 	tok_end
 )
 
-var tok_strings = map[Token]string{
+
+var tokens = [...]string{
+	ILLEGAL: "ILLEGAL",
+
 	EOF:     "EOF",
-	ILLEGAL: "Illegal",
-	COMMENT: "Comment",
-	INTEGER: "Integer",
-	LPAREN:  "(",
-	RPAREN:  ")",
-	ADD:     "+",
-	SUB:     "-",
-	MUL:     "*",
-	QUO:     "/",
-	REM:     "%",
+	COMMENT: "COMMENT",
+
+	IDENT:  "IDENT",
+	INT:    "INT",
+	FLOAT:  "FLOAT",
+	CHAR:   "CHAR",
+	STRING: "STRING",
+
+	ADD: "+",
+	SUB: "-",
+	MUL: "*",
+	QUO: "/",
+	REM: "%",
+
+	EQL:    "==",
+	LSS:    "<",
+	GTR:    ">",
+	ASSIGN: "=",
+	NOT:    "!",
+
+	NEQ:      "!=",
+	LEQ:      "<=",
+	GEQ:      ">=",
+	DEFINE:   ":=",
+
+	LPAREN: "(",
+	LBRACK: "[",
+	LBRACE: "{",
+
+	RPAREN:    ")",
+	RBRACK:    "]",
+	RBRACE:    "}",
+
+	ELSE:        "else",
+	FOR:         "for",
+
+	FUNC:   "func",
+	IF:     "if",
+
+	RETURN:    "return",
+
+	VAR:    "var",
+}
+
+var keywords map[string]Token
+func init() {
+	keywords = make(map[string]Token)
+	for i := keyword_beg + 1; i < keyword_end; i++ {
+		keywords[tokens[i]] = i
+	}
 }
 
 func (t Token) IsEOF() bool {
@@ -59,17 +143,24 @@ func (t Token) IsOperator() bool {
 	return t > op_start && t < op_end
 }
 
-func Lookup(str string) Token {
-	for t, s := range tok_strings {
-		if s == str {
-			return t
-		}
+// Lookup maps an identifier to its keyword token or IDENT (if not a keyword).
+//
+func Lookup(ident string) Token {
+	if tok, is_keyword := keywords[ident]; is_keyword {
+		return tok
 	}
-	return ILLEGAL
+	return IDENT
 }
 
 func (t Token) String() string {
-	return tok_strings[t]
+	s := ""
+	if 0 <= t && t < Token(len(tokens)) {
+		s = tokens[t]
+	}
+	if s == "" {
+		s = "token(" + strconv.Itoa(int(t)) + ")"
+	}
+	return s
 }
 
 func (t Token) Valid() bool {

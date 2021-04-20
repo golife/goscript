@@ -98,7 +98,7 @@ func (s *Scanner) scanNumber() (string, token.Token, token.Pos) {
 	if s.ch == rune(-1) {
 		offset++
 	}
-	return s.src[start:offset], token.INTEGER, s.file.Pos(start)
+	return s.src[start:offset], token.INT, s.file.Pos(start)
 }
 
 func (s *Scanner) skipComment() {

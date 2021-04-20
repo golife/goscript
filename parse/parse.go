@@ -86,6 +86,17 @@ addOp -> "+" | "-"
 term -> factor { mulop factor }
 mulop -> "*" | "/"
 factor -> NUM | "(" expression ")"
+
+Expression = Term { addOp Term }
+Term = UnaryExpr { mulop UnaryExpr }
+UnaryExpr  = PrimaryExpr | unary_op UnaryExpr .
+PrimaryExpr -> BasicLit | "(" Expression ")" | MethodExpr
+BasicLit    = int_lit | float_lit | imaginary_lit | rune_lit | string_lit .
+
+mulop = "*" | "/" | "%"
+addOp = "+" | "-"
+unary_op   = "+" | "-"
+
 */
 
 func (p *parser) parseExpression() ast.Expr {
@@ -121,10 +132,16 @@ func (p *parser) parseExpression() ast.Expr {
 term -> factor { mulop factor }
 mulop -> "*" | "/" | "%"
 factor -> NUM | "(" expression ")"
+
+Term = UnaryExpr { mulop UnaryExpr }
+UnaryExpr  = PrimaryExpr | unary_op UnaryExpr .
+PrimaryExpr -> BasicLit | "(" Expression ")" | MethodExpr
+BasicLit    = int_lit | float_lit | imaginary_lit | rune_lit | string_lit .
+
 */
 func (p *parser) parseTerm() ast.Expr {
 	// left
-	left := p.parseFactor()
+	left := p.parseUnaryExpr()
 
 	for {
 		// op
@@ -133,7 +150,7 @@ func (p *parser) parseTerm() ast.Expr {
 
 		if opTok == token.MUL || opTok == token.QUO || opTok == token.REM {
 			p.next()
-			right := p.parseFactor()
+			right := p.parseUnaryExpr()
 
 			// BinaryExpr再做为left
 			// 1*2 *3 3 => 1*2是一个left
@@ -149,9 +166,31 @@ func (p *parser) parseTerm() ast.Expr {
 	}
 }
 
+// UnaryExpr  = PrimaryExpr | unary_op UnaryExpr .
+// unary_op   = "+" | "-"
+func (p *parser) parseUnaryExpr() ast.Expr {
+	// 看是否unary_op
+	opTok := p.tok
+	opPos := p.pos
+	if opTok == token.ADD || opTok == token.SUB {
+		p.next()
+		x := p.parseUnaryExpr()
+		return &ast.UnaryExpr{
+			Op: opTok,
+			OpPos: opPos,
+			X: x,
+		}
+	} else {
+		return p.parsePrimaryExpr()
+	}
+}
+
 // factor -> NUM | "(" expression ")"
+// UnaryExpr  = PrimaryExpr | unary_op UnaryExpr .
+// PrimaryExpr -> BasicLit | "(" Expression ")" | MethodExpr
+// BasicLit    = int_lit | float_lit | imaginary_lit | rune_lit | string_lit .
 // 会指向下一个
-func (p *parser) parseFactor() ast.Expr {
+func (p *parser) parsePrimaryExpr() ast.Expr {
 	if p.tok.IsLiteral() { // NUM
 		expr := p.parseBasicLit()
 		p.next()

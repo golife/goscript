@@ -17,7 +17,7 @@ import (
 func TestBasicLit(t *testing.T) {
 	b := &ast.BasicLit{
 		LitPos: token.Pos(1),
-		Kind:   token.INTEGER,
+		Kind:   token.INT,
 		Lit:    "24",
 	}
 	pos, end := token.Pos(1), token.Pos(3)
@@ -30,12 +30,12 @@ func TestBinaryExpr(t *testing.T) {
 	// 3 + 5
 	x := &ast.BasicLit{
 		LitPos: token.Pos(1),
-		Kind:   token.INTEGER,
+		Kind:   token.INT,
 		Lit:    "3",
 	}
 	y := &ast.BasicLit{
 		LitPos: token.Pos(5),
-		Kind:   token.INTEGER,
+		Kind:   token.INT,
 		Lit:    "5",
 	}
 	b := &ast.BinaryExpr{

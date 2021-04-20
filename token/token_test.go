@@ -22,12 +22,17 @@ func TestLookup(t *testing.T) {
 		str string
 		tok token.Token
 	}{
-		{"+", token.ADD},
-		{"%", token.REM},
-		{"EOF", token.EOF},
-		{"Integer", token.INTEGER},
-		{"Comment", token.COMMENT},
-		{"", token.ILLEGAL},
+		{"+", token.IDENT},
+		{"%", token.IDENT},
+		{"EOF", token.IDENT},
+		{"INT", token.IDENT},
+		{"Comment", token.IDENT},
+		{"", token.IDENT},
+		{"for", token.FOR},
+		{"func", token.FUNC},
+		{"if", token.IF},
+		{"else", token.ELSE},
+		{"return", token.RETURN},
 	}
 
 	for i, v := range tests {
@@ -45,7 +50,7 @@ func TestIsLiteral(t *testing.T) {
 		{token.ADD, false},
 		{token.REM, false},
 		{token.EOF, false},
-		{token.INTEGER, true},
+		{token.INT, true},
 		{token.COMMENT, false},
 	}
 
@@ -64,7 +69,7 @@ func TestIsOperator(t *testing.T) {
 		{token.ADD, true},
 		{token.REM, true},
 		{token.EOF, false},
-		{token.INTEGER, false},
+		{token.INT, false},
 		{token.COMMENT, false},
 	}
 
@@ -83,7 +88,7 @@ func TestString(t *testing.T) {
 		{"+", token.ADD},
 		{"%", token.REM},
 		{"EOF", token.EOF},
-		{"Integer", token.INTEGER},
+		{"INT", token.INT},
 		{"Comment", token.COMMENT},
 	}
 
@@ -102,7 +107,7 @@ func TestValid(t *testing.T) {
 		{token.ADD, true},
 		{token.REM, true},
 		{token.EOF, true},
-		{token.INTEGER, true},
+		{token.INT, true},
 		{token.COMMENT, true},
 		{token.Token(-1), false},
 		{token.Token(999999), false},

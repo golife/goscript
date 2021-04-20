@@ -11,12 +11,21 @@ import (
 
 func TestInteger(t *testing.T) {
 	test_handler(t, "42", 42)
+	test_handler(t, "-42", -42)
 }
 
 func TestSimpleExpression(t *testing.T) {
 	test_handler(t, "5 + 3", 8)
+	test_handler(t, "-5 + 3", -2)
 	test_handler(t, "5 + 3 + 1", 9)
+	test_handler(t, "-5 + 3 + 1", -1)
+	test_handler(t, "-5 - 3 + 1", -7)
+	test_handler(t, "-5 -- 5", 0) // 暂时没有 -- 所以可以
 	test_handler(t, "2 * 3", 6)
+	test_handler(t, "-2 * 3", -6)
+	test_handler(t, "2 * -3", -6)
+	test_handler(t, "2 * -3 * -2", 12)
+	test_handler(t, "2 * (-3)", -6)
 	test_handler(t, "2 * 3 * 4", 24)
 	test_handler(t, "1 * 2 * 3 * 4 * 5", 120)
 }
@@ -31,6 +40,8 @@ func TestComplexExpression(t *testing.T) {
 	test_handler(t, "8 - (2+3) * (2 - 2)", 8)
 	test_handler(t, "8 * (2+3 - 1*3*2) - (2 + 2 -1)", -11)
 	test_handler(t, "8 * (2+3 - 2*3*(2+3)) - (2 + 2 -1)", -203)
+	test_handler(t, "8 * (-2+3 - 2*-3*(2+3)) - (-2 - 2 -1)", 253)
+	test_handler(t, "-8 * (-2-3 - (-2)*-3*(2+3)) - (-2 - 2 -1)", 285)
 }
 
 func test_handler(t *testing.T, src string, expected int) {

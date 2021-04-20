@@ -32,6 +32,8 @@ func (c *exec) execNode(node ast.Node) int {
 	switch n := node.(type) {
 	case *ast.BasicLit:
 		return c.execBasicLit(n)
+	case *ast.UnaryExpr:
+		return c.execUnaryExpr(n)
 	case *ast.BinaryExpr:
 		return c.execBinaryExpr(n)
 	default:
@@ -47,6 +49,17 @@ func (c *exec) execBasicLit(n *ast.BasicLit) int {
 		os.Exit(1)
 	}
 	return i
+}
+
+// 计算一元
+func (c *exec) execUnaryExpr(b *ast.UnaryExpr) int {
+	switch b.Op {
+	case token.ADD:
+		return c.execNode(b.X)
+	case token.SUB:
+		return -c.execNode(b.X)
+	}
+	return 0
 }
 
 // 计算二元操作
