@@ -79,6 +79,16 @@ func print(node Node, level int) {
 		for _, v := range n.Rhs {
 			print(v, level+1)
 		}
+	case *CallExpr:
+		fmt.Println("call:")
+		print(n.Fun, level)
+		printPrefix(level)
+		fmt.Println("args: ")
+		for _, v := range n.Args {
+			print(v, level+1)
+		}
+	case *ExprStmt:
+		print(n.X, level)
 	default:
 		fmt.Println("dunno what I got...that can't be good")
 		fmt.Println(n)

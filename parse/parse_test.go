@@ -105,7 +105,9 @@ func TestStmt(t *testing.T) {
 
 func TestStmt2(t *testing.T) {
 	f := parse.ParseFile("test.gs", `var a, b int = 10+2, 12+(9-3)
-a, b := 10, 12+32*3`)
+a, b := 10, 12+32*3
+funcName(1, 2)
+`)
 	fmt.Println(len(f.Stmts))
 	for _, item := range f.Stmts {
 		ast.Print(item)

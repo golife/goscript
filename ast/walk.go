@@ -17,11 +17,14 @@ func Walk(node Node, level int, f Func) {
 	if f != nil {
 		f(node, level)
 	}
-	switch n := node.(type) {
-	case *File:
-		Walk(n.Root, level, f)
-	case *BinaryExpr:
-		Walk(n.X, level+1, f)
-		Walk(n.Y, level+1, f)
-	}
+	//switch n := node.(type) {
+	//case *File:
+	//	Walk(n.Root, level, f)
+	//case *BinaryExpr:
+	//	Walk(n.X, level+1, f)
+	//	Walk(n.Y, level+1, f)
+	//case *ExprStmt:
+	//	Walk(n.X, level+1, f)
+	//}
+
 }

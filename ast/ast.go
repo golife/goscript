@@ -65,10 +65,18 @@ type Ident struct {
 	Obj     *Object   // denoted object; or nil
 }
 
+// A CallExpr node represents an expression followed by an argument list.
+type CallExpr struct {
+	Fun      Expr      // function expression
+	Lparen   token.Pos // position of "("
+	Args     []Expr    // function arguments; or nil
+	Rparen   token.Pos // position of ")"
+}
+
 type File struct {
 	Root Expr
 
-	Stmts []Stmt     // 语句
+	Stmts []Stmt // 语句
 	//Funcs []*FuncDecl // 函数
 
 	Scope *Scope // 作用范围
@@ -79,17 +87,20 @@ func (b *UnaryExpr) Pos() token.Pos  { return b.OpPos }
 func (b *BinaryExpr) Pos() token.Pos { return b.X.Pos() } // left's pos
 func (f *File) Pos() token.Pos       { return f.Root.Pos() }
 func (x *Ident) Pos() token.Pos      { return x.NamePos }
+func (x *CallExpr) Pos() token.Pos   { return x.Fun.Pos() }
 
 func (b *BasicLit) End() token.Pos   { return b.LitPos + token.Pos(len(b.Lit)) }
 func (b *UnaryExpr) End() token.Pos  { return b.X.End() }
 func (b *BinaryExpr) End() token.Pos { return b.Y.End() } // right's end
 func (f *File) End() token.Pos       { return f.Root.End() }
 func (x *Ident) End() token.Pos      { return token.Pos(int(x.NamePos) + len(x.Name)) }
+func (x *CallExpr) End() token.Pos   { return x.Rparen + 1 }
 
 func (b *BasicLit) exprNode()   {}
 func (b *BinaryExpr) exprNode() {}
 func (b *UnaryExpr) exprNode()  {}
 func (b *Ident) exprNode()      {}
+func (*CallExpr) exprNode()     {}
 
 //-----------
 // field

@@ -162,4 +162,4 @@ func (*BlockStmt) stmtNode()  {}
 func (*IfStmt) stmtNode()     {}
 func (*ForStmt) stmtNode()    {}
 func (*VarStmt) stmtNode()    {}
-func (*FuncStmt) stmtNode()    {}
+func (*FuncStmt) stmtNode()   {}

@@ -441,10 +441,60 @@ func (p *parser) parsePrimaryExpr() ast.Expr {
 		expr := p.parseExpression()
 		p.expect(token.RPAREN)
 		return expr
-	} else if p.tok == token.IDENT {
-		return p.parseIdent()
+	} else if p.tok == token.IDENT { // a 或 a()
+		ident := p.parseIdent()
+		switch p.tok {
+		case token.LPAREN:
+			return p.parseCall(ident)
+		default:
+			return ident
+		}
 	} else {
 		p.addError("Expected NUM or ( but got '" + p.lit + "'")
 		return nil
 	}
 }
+
+// a(b, c, d) 当前是 (
+func (p *parser) parseCall(fun ast.Expr) *ast.CallExpr {
+	lparen := p.expect(token.LPAREN)
+	var list []ast.Expr
+	for p.tok != token.RPAREN && p.tok != token.EOF {
+		list = append(list, p.parseExpression())
+		if !p.atComma("argument list", token.RPAREN) {
+			break
+		}
+		p.next()
+	}
+	rparen := p.expectClosing(token.RPAREN, "argument list")
+
+	return &ast.CallExpr{Fun: fun, Lparen: lparen, Args: list, Rparen: rparen}
+}
+
+func (p *parser) atComma(context string, follow token.Token) bool {
+	if p.tok == token.COMMA {
+		return true
+	}
+	if p.tok != follow {
+		msg := "missing ','"
+		if p.tok == token.SEMICOLON && p.lit == "\n" {
+			msg += " before newline"
+		}
+		p.addError(msg+" in "+context)
+		return true // "insert" comma and continue
+	}
+	return false
+}
+
+
+// expectClosing is like expect but provides a better error message
+// for the common case of a missing comma before a newline.
+//
+func (p *parser) expectClosing(tok token.Token, context string) token.Pos {
+	if p.tok != tok && p.tok == token.SEMICOLON && p.lit == "\n" {
+		p.addError("missing ',' before newline in "+context)
+		p.next()
+	}
+	return p.expect(tok)
+}
+
