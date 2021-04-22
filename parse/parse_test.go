@@ -5,6 +5,7 @@
 package parse_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/golife/goscript/ast"
@@ -91,5 +92,22 @@ func TestInvalid(t *testing.T) {
 			t.Log(src, "- not nil")
 			t.Fail()
 		}
+	}
+}
+
+func TestStmt(t *testing.T) {
+	f := parse.ParseFile("test.gs", `var a, b int = 10+2, 12+(9-3)`)
+	fmt.Println(len(f.Stmts))
+	for _, item := range f.Stmts {
+		ast.Print(item)
+	}
+}
+
+func TestStmt2(t *testing.T) {
+	f := parse.ParseFile("test.gs", `var a, b int = 10+2, 12+(9-3)
+a, b := 10, 12+32*3`)
+	fmt.Println(len(f.Stmts))
+	for _, item := range f.Stmts {
+		ast.Print(item)
 	}
 }

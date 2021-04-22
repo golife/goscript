@@ -41,7 +41,7 @@ type Pos uint
 
 var NoPos = Pos(0)
 
-func (p Pos) Valid() bool {
+func (p Pos) IsValid() bool {
 	return p != NoPos
 }
 

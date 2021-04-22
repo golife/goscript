@@ -21,10 +21,10 @@ const (
 	// 字面值
 	lit_start
 
-	INT // 1
-	FLOAT   // 1.2
-	CHAR    // 'a'
-	STRING  // "a"
+	INT    // 1
+	FLOAT  // 1.2
+	CHAR   // 'a'
+	STRING // "a"
 
 	lit_end
 
@@ -46,16 +46,19 @@ const (
 	LBRACE // {
 	RBRACE // }
 
-	EQL    // ==
-	LSS    // <
-	GTR    // >
-	ASSIGN // =
-	NOT    // !
+	COMMA // ,
+	SEMICOLON // ;
+
+	EQL // ==
+	LSS // <
+	GTR // >
+	NOT // !
 
 	NEQ // !=
 	LEQ // <=
 	GEQ // >=
 
+	ASSIGN // =
 	DEFINE // :=
 
 	op_end
@@ -73,7 +76,6 @@ const (
 
 	tok_end
 )
-
 
 var tokens = [...]string{
 	ILLEGAL: "ILLEGAL",
@@ -99,31 +101,35 @@ var tokens = [...]string{
 	ASSIGN: "=",
 	NOT:    "!",
 
-	NEQ:      "!=",
-	LEQ:      "<=",
-	GEQ:      ">=",
-	DEFINE:   ":=",
+	NEQ:    "!=",
+	LEQ:    "<=",
+	GEQ:    ">=",
+	DEFINE: ":=",
 
 	LPAREN: "(",
 	LBRACK: "[",
 	LBRACE: "{",
 
-	RPAREN:    ")",
-	RBRACK:    "]",
-	RBRACE:    "}",
+	RPAREN: ")",
+	RBRACK: "]",
+	RBRACE: "}",
 
-	ELSE:        "else",
-	FOR:         "for",
+	COMMA: ",",
+	SEMICOLON: ":",
 
-	FUNC:   "func",
-	IF:     "if",
+	ELSE: "else",
+	FOR:  "for",
 
-	RETURN:    "return",
+	FUNC: "func",
+	IF:   "if",
 
-	VAR:    "var",
+	RETURN: "return",
+
+	VAR: "var",
 }
 
 var keywords map[string]Token
+
 func init() {
 	keywords = make(map[string]Token)
 	for i := keyword_beg + 1; i < keyword_end; i++ {
