@@ -52,3 +52,12 @@ func test_handler(t *testing.T, src string, expected int) {
 		t.Log(src, " = ", ret)
 	}
 }
+
+func TestStmts(t *testing.T) {
+	src := `var a = 10
+a = a + 2 + a * 3
+print(a, a * 2)
+print(a - 2)
+`
+	exec.Exec("test.gs", src)
+}

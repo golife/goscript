@@ -39,8 +39,9 @@ func (s *Scope) Lookup(name string) *Object {
 // If the scope already contains an object alt with the same name,
 // Insert leaves the scope unchanged and returns alt. Otherwise
 // it inserts obj and returns nil.
-//
+// 只会插入新的
 func (s *Scope) Insert(obj *Object) (alt *Object) {
+	// 如果找不到, 就会插入
 	if alt = s.Objects[obj.Name]; alt == nil {
 		s.Objects[obj.Name] = obj
 	}
