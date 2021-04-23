@@ -107,6 +107,17 @@ func TestStmt2(t *testing.T) {
 	f := parse.ParseFile("test.gs", `var a, b int = 10+2, 12+(9-3)
 a, b := 10, 12+32*3
 funcName(1, 2)
+func hello(name1, name2 string, age int) {
+	var c = 10
+	c = 100 + 10
+	print("life")
+}
+
+if a > 10 && b < 100 {
+	print("ok")
+}
+
+a = 103
 `)
 	fmt.Println(len(f.Stmts))
 	for _, item := range f.Stmts {

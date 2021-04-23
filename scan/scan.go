@@ -115,6 +115,24 @@ func (s *Scanner) Scan() (lit string, tok token.Token, pos token.Pos) {
 		default:
 			tok = token.ILLEGAL
 		}
+	case '|': // |
+		s.next()
+		switch s.ch {
+		case '|':
+			tok = token.LOR
+			lit = "||"
+		default:
+			tok = token.ILLEGAL
+		}
+	case '&': // &
+		s.next()
+		switch s.ch {
+		case '&':
+			tok = token.LAND
+			lit = "&&"
+		default:
+			tok = token.ILLEGAL
+		}
 	case '"': // "life" string
 		tok = token.STRING
 		start := s.offset
@@ -134,7 +152,7 @@ func (s *Scanner) Scan() (lit string, tok token.Token, pos token.Pos) {
 		start := s.offset
 		for {
 			s.next()
-			if s.ch >= 'a' && s.ch <= 'z' || s.ch >= 'A' && s.ch <= 'Z' { // TODO EOF 考虑
+			if s.ch >= 'a' && s.ch <= 'z' || s.ch >= 'A' && s.ch <= 'Z' || s.ch >= '1' && s.ch <= '9' { // TODO EOF 考虑
 				//fmt.Println(string(s.ch))
 			} else {
 				if s.ch == rune(-1) {

@@ -58,6 +58,10 @@ type UnaryExpr struct {
 	X     Expr        // operand
 }
 
+type BadExpr struct {
+	From, To token.Pos // position range of bad expression
+}
+
 // An Ident node represents an identifier.
 type Ident struct {
 	NamePos token.Pos // identifier position
@@ -71,6 +75,12 @@ type CallExpr struct {
 	Lparen   token.Pos // position of "("
 	Args     []Expr    // function arguments; or nil
 	Rparen   token.Pos // position of ")"
+}
+
+// A FuncLit node represents a function literal.
+type FuncLit struct {
+	Type *FuncType  // function type
+	Body *BlockStmt // function body
 }
 
 type File struct {
@@ -88,6 +98,14 @@ func (b *BinaryExpr) Pos() token.Pos { return b.X.Pos() } // left's pos
 func (f *File) Pos() token.Pos       { return f.Root.Pos() }
 func (x *Ident) Pos() token.Pos      { return x.NamePos }
 func (x *CallExpr) Pos() token.Pos   { return x.Fun.Pos() }
+func (x *BadExpr) Pos() token.Pos  { return x.From }
+func (x *FuncLit) Pos() token.Pos  { return x.Type.Pos() }
+func (x *FuncType) Pos() token.Pos {
+	if x.Func.IsValid() || x.Params == nil { // see issue 3870
+		return x.Func
+	}
+	return x.Params.Pos() // interface method declarations have no "func" keyword
+}
 
 func (b *BasicLit) End() token.Pos   { return b.LitPos + token.Pos(len(b.Lit)) }
 func (b *UnaryExpr) End() token.Pos  { return b.X.End() }
@@ -95,12 +113,23 @@ func (b *BinaryExpr) End() token.Pos { return b.Y.End() } // right's end
 func (f *File) End() token.Pos       { return f.Root.End() }
 func (x *Ident) End() token.Pos      { return token.Pos(int(x.NamePos) + len(x.Name)) }
 func (x *CallExpr) End() token.Pos   { return x.Rparen + 1 }
+func (x *BadExpr) End() token.Pos  { return x.To }
+func (x *FuncLit) End() token.Pos   { return x.Body.End() }
+func (x *FuncType) End() token.Pos {
+	if x.Results != nil {
+		return x.Results.End()
+	}
+	return x.Params.End()
+}
 
 func (b *BasicLit) exprNode()   {}
 func (b *BinaryExpr) exprNode() {}
 func (b *UnaryExpr) exprNode()  {}
 func (b *Ident) exprNode()      {}
-func (*CallExpr) exprNode()     {}
+func (b *CallExpr) exprNode()    {}
+func (b *BadExpr) exprNode()     {}
+func (b *FuncLit) exprNode()     {}
+func (*FuncType) exprNode()      {}
 
 //-----------
 // field

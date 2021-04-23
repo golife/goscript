@@ -31,7 +31,11 @@ type parser struct {
 	errors  scan.ErrorList
 	scanner scan.Scanner
 
-	topScope *ast.Scope
+	topScope *ast.Scope // top-most scope;
+	// Label scopes
+	// (maintained by open/close LabelScope)
+	labelScope  *ast.Scope     // label scope for current function
+	targetStack [][]*ast.Ident // stack of unresolved labels
 
 	// 当前token
 	pos token.Pos
@@ -44,7 +48,6 @@ func (p *parser) init(fname, src string) {
 	p.scanner.Init(p.file, src)
 	p.openScope()
 }
-
 
 func assert(cond bool, msg string) {
 	if !cond {
@@ -65,6 +68,7 @@ func (p *parser) expect(tok token.Token) token.Pos {
 	pos := p.pos
 	if p.tok != tok {
 		p.addError("Pos:" + strconv.Itoa(int(pos)) + " Expected '" + tok.String() + "' got '" + p.lit + "'")
+		//panic("----")
 	}
 	p.next()
 	return pos
@@ -102,6 +106,26 @@ func (p *parser) openScope() {
 
 func (p *parser) closeScope() {
 	p.topScope = p.topScope.Outer
+}
+
+func (p *parser) openLabelScope() {
+	p.labelScope = ast.NewScope(p.labelScope)
+	p.targetStack = append(p.targetStack, nil)
+}
+
+func (p *parser) closeLabelScope() {
+	// resolve labels
+	n := len(p.targetStack) - 1
+	scope := p.labelScope
+	for _, ident := range p.targetStack[n] {
+		ident.Obj = scope.Lookup(ident.Name)
+		if ident.Obj == nil /*&& p.mode&DeclarationErrors != 0*/ {
+			p.addError(fmt.Sprintf("label %s undefined", ident.Name))
+		}
+	}
+	// pop label scope
+	p.targetStack = p.targetStack[0:n]
+	p.labelScope = p.labelScope.Outer
 }
 
 // File = { (Statement ";") | (FunctionDecl ";") }
@@ -174,6 +198,7 @@ func (p *parser) parseStmt () (s ast.Stmt) {
 // a, // 有right
 // a, b // 有right
 // a + b // 无right
+// a > 10
 func (p *parser) parseSimpleStmt() ast.Stmt {
 	x := p.parseLhsList()
 
@@ -262,12 +287,310 @@ func (p *parser) parseVarStmt() *ast.VarStmt {
 	}
 }
 
+// funcName () () {}
 func (p *parser) parseFuncStmt() *ast.FuncStmt {
+	pos := p.expect(token.FUNC)
+	scope := ast.NewScope(p.topScope) // function scope
+
+	// func name
+	ident := p.parseIdent()
+
+	params, results := p.parseSignature(scope)
+
+	var body *ast.BlockStmt
+	if p.tok == token.LBRACE { // {
+		body = p.parseBody(scope)
+		//p.expectSemi()
+	} else if p.tok == token.SEMICOLON { // ;
+		p.next()
+		if p.tok == token.LBRACE { // {
+			// opening { of function declaration on next line
+			p.addError("unexpected semicolon or newline before {")
+			body = p.parseBody(scope)
+			p.expectSemi()
+		}
+	} else {
+		p.expectSemi()
+	}
+
+	return &ast.FuncStmt{
+		Name: ident,
+		Type: &ast.FuncType{
+			Func:    pos,
+			Params:  params,
+			Results: results,
+		},
+		Body: body,
+	}
+	//if recv == nil {
+	//	// Go spec: The scope of an identifier denoting a constant, type,
+	//	// variable, or function (but not method) declared at top level
+	//	// (outside any function) is the package block.
+	//	//
+	//	// init() functions cannot be referred to and there may
+	//	// be more than one - don't put them in the pkgScope
+	//	if ident.Name != "init" {
+	//		//p.declare(decl, nil, p.pkgScope, ast.Fun, ident)
+	//	}
+	//}
+}
+
+func (p *parser) parseBody(scope *ast.Scope) *ast.BlockStmt {
+	lbrace := p.expect(token.LBRACE)
+	p.topScope = scope // open function scope
+	p.openLabelScope()
+	list := p.parseStmtList()
+	p.closeLabelScope()
+	p.closeScope()
+	rbrace := p.expect(token.RBRACE)
+
+	return &ast.BlockStmt{Lbrace: lbrace, List: list, Rbrace: rbrace}
+}
+
+//func a (a, b int, c, d float32) {
+//}
+
+// ()
+// (a int)
+// (a, b int)
+// (a, b int, c, d float)
+// (a int, b float)
+func (p *parser) parseParameterList(scope *ast.Scope) (params []*ast.Field) {
+	// 1st ParameterDecl
+	// A list of identifiers looks like a list of type names.
+	var list []ast.Expr
+	for {
+		list = append(list, p.tryType()) // a b
+		if p.tok != token.COMMA { // , 当到int时就会break
+			break
+		}
+		p.next()
+		if p.tok == token.RPAREN { // )
+			break
+		}
+	}
+
+	// list = []
+	// list = [name1]
+	// list = [name1, name2] 无 type
+
+	// analyze case
+	// 当有type时
+	if typ := p.tryType(); typ != nil {
+		// IdentifierList Type
+		idents := p.makeIdentList(list) // 转成 idents
+		field := &ast.Field{Names: idents, Type: typ}
+		params = append(params, field)
+		// Go spec: The scope of an identifier denoting a function
+		// parameter or result variable is the function body.
+		//p.declare(field, nil, scope, ast.Var, idents...)
+		//p.resolve(typ)
+		if !p.atComma("parameter list", token.RPAREN) { // 下一个, 如果不是 , 则证明参数没了
+			return
+		}
+		// 还有参数组
+		p.next()
+		for p.tok != token.RPAREN && p.tok != token.EOF {
+			idents := p.parseIdentList()
+			typ := p.tryType()
+			field := &ast.Field{Names: idents, Type: typ}
+			params = append(params, field)
+			// Go spec: The scope of an identifier denoting a function
+			// parameter or result variable is the function body.
+			//p.declare(field, nil, scope, ast.Var, idents...)
+			//p.resolve(typ)
+			if !p.atComma("parameter list", token.RPAREN) {
+				break
+			}
+			p.next()
+		}
+		return
+	}
+
+	// 或没有参数
+	// 匿名, 只有 type,  (int, int)
+	// Type { "," Type } (anonymous parameters)
+	params = make([]*ast.Field, len(list))
+	for i, typ := range list {
+		//p.resolve(typ)
+		params[i] = &ast.Field{Type: typ}
+	}
+	return
+}
+
+// Expr -> Ident
+func (p *parser) makeIdentList(list []ast.Expr) []*ast.Ident {
+	idents := make([]*ast.Ident, len(list))
+	for i, x := range list {
+		ident, isIdent := x.(*ast.Ident)
+		if !isIdent {
+			if _, isBad := x.(*ast.BadExpr); !isBad {
+				// only report error if it's a new one
+				p.errorExpected(x.Pos(), "identifier")
+			}
+			ident = &ast.Ident{NamePos: x.Pos(), Name: "_"}
+		}
+		idents[i] = ident
+	}
+	return idents
+}
+
+func (p *parser) parseParameters(scope *ast.Scope) *ast.FieldList {
+	var params []*ast.Field
+	lparen := p.expect(token.LPAREN)
+	if p.tok != token.RPAREN {
+		params = p.parseParameterList(scope)
+	}
+	rparen := p.expect(token.RPAREN)
+
+	return &ast.FieldList{Opening: lparen, List: params, Closing: rparen}
+}
+
+func (p *parser) parseResult(scope *ast.Scope) *ast.FieldList {
+	if p.tok == token.LPAREN {
+		return p.parseParameters(scope)
+	}
+
+	typ := p.tryType()
+	if typ != nil {
+		list := make([]*ast.Field, 1)
+		list[0] = &ast.Field{Type: typ}
+		return &ast.FieldList{List: list}
+	}
+
 	return nil
 }
 
+// signature = parameters results
+func (p *parser) parseSignature(scope *ast.Scope) (params, results *ast.FieldList) {
+	params = p.parseParameters(scope)
+	results = p.parseResult(scope)
+	return
+}
+
+// if a:=false; a {} if 初始;条件{}
+// 返回 init, condition
+func (p *parser) parseIfHeader() (init ast.Stmt, cond ast.Expr) {
+	if p.tok == token.LBRACE { // { 没有条件, 直接 block
+		p.addError("missing condition in if statement")
+		cond = &ast.BadExpr{From: p.pos, To: p.pos}
+		return
+	}
+
+	// 初始化
+	if p.tok != token.SEMICOLON { // ;
+		// accept potential variable declaration but complain
+		if p.tok == token.VAR {
+			p.next()
+			p.addError(fmt.Sprintf("var declaration not allowed in 'IF' initializer"))
+		}
+		init = p.parseSimpleStmt()
+	}
+
+	// 条件
+	var condStmt ast.Stmt
+	var semi struct {
+		pos token.Pos
+		lit string // ";" or "\n"; valid if pos.IsValid()
+	}
+	// 如果不是 { 那么, 肯定还有条件, 否则 init就是条件
+	if p.tok != token.LBRACE { // {
+		if p.tok == token.SEMICOLON {
+			semi.pos = p.pos
+			semi.lit = p.lit
+			p.next()
+		} else {
+			p.expect(token.SEMICOLON)
+		}
+		if p.tok != token.LBRACE {
+			condStmt = p.parseSimpleStmt()
+		}
+	} else {
+		condStmt = init
+		init = nil
+	}
+
+	if condStmt != nil {
+		cond = p.makeExpr(condStmt, "boolean expression") // 条件 必须是 expr, 不能是语句之类的
+	} else if semi.pos.IsValid() {
+		if semi.lit == "\n" {
+			p.addError("unexpected newline, expecting { after if clause")
+		} else {
+			p.addError("missing condition in if statement")
+		}
+	}
+
+	// make sure we have a valid AST
+	if cond == nil {
+		cond = &ast.BadExpr{From: p.pos, To: p.pos}
+	}
+
+	return
+}
+
 func (p *parser) parseIfStmt() *ast.IfStmt {
-	return nil
+	pos := p.expect(token.IF)
+	p.openScope()
+	defer p.closeScope()
+
+	init, cond := p.parseIfHeader()
+	body := p.parseBlockStmt()
+
+	var else_ ast.Stmt
+	if p.tok == token.ELSE {
+		p.next()
+		switch p.tok {
+		case token.IF:
+			else_ = p.parseIfStmt()
+		case token.LBRACE: // {
+			else_ = p.parseBlockStmt()
+			//p.expectSemi()
+		default:
+			p.errorExpected(p.pos, "if statement or block")
+			else_ = &ast.BadStmt{From: p.pos, To: p.pos}
+		}
+	} else {
+		//p.expectSemi()
+	}
+
+	return &ast.IfStmt{If: pos, Init: init, Cond: cond, Body: body, Else: else_}
+}
+
+func (p *parser) parseBlockStmt() *ast.BlockStmt {
+	lbrace := p.expect(token.LBRACE)
+	p.openScope()
+	list := p.parseStmtList()
+	p.closeScope()
+	rbrace := p.expect(token.RBRACE)
+
+	return &ast.BlockStmt{Lbrace: lbrace, List: list, Rbrace: rbrace}
+}
+
+// ----------------------------------------------------------------------------
+// Blocks
+
+func (p *parser) parseStmtList() (list []ast.Stmt) {
+	for p.tok != token.RBRACE && p.tok != token.EOF {
+		list = append(list, p.parseStmt())
+	}
+	return
+}
+
+// 必须是ExprStmt, 不能是其它的
+func (p *parser) makeExpr(s ast.Stmt, want string) ast.Expr {
+	if s == nil {
+		return nil
+	}
+	if es, isExpr := s.(*ast.ExprStmt); isExpr {
+		return es.X
+		//return p.checkExpr(es.X)
+	}
+	found := "simple statement"
+	if _, isAss := s.(*ast.AssignStmt); isAss {
+		found = "assignment"
+	}
+	p.addError(fmt.Sprintf("expected %s, found %s (missing parentheses around composite literal?)", want, found))
+	return &ast.BadExpr{From: s.Pos(), To: s.End()}
 }
 
 // If lhs is set, result list elements which are identifiers are not resolved.
@@ -322,27 +645,39 @@ func (p *parser) parseBasicLit() *ast.BasicLit {
 
 /*
 1+2+3
-expression -> term { addOp term }
-addOp -> "+" | "-"
-term -> factor { mulop factor }
-mulop -> "*" | "/"
-factor -> NUM | "(" expression ")"
 
-Expression = Term { addOp Term }
-Term = UnaryExpr { mulop UnaryExpr }
+Expression = UnaryExpr | Expression binary_op Expression .
 UnaryExpr  = PrimaryExpr | unary_op UnaryExpr .
-PrimaryExpr -> BasicLit | "(" Expression ")" | MethodExpr
-BasicLit    = int_lit | float_lit | imaginary_lit | rune_lit | string_lit .
 
-mulop = "*" | "/" | "%"
-addOp = "+" | "-"
-unary_op   = "+" | "-"
+binary_op  = "||" | "&&" | rel_op | add_op | mul_op .
+rel_op     = "==" | "!=" | "<" | "<=" | ">" | ">=" .
+add_op     = "+" | "-" | "|" | "^" .
+mul_op     = "*" | "/" | "%" | "<<" | ">>" | "&" | "&^" .
+
+unary_op   = "+" | "-" | "!" | "^" | "*" | "&" | "<-" .
 
 */
-
 func (p *parser) parseExpression() ast.Expr {
+	return p._parseExpression(0)
+}
+
+// lastOpPrecedence 上一个操作符的优级极
+//
+/*
+1 + 2 * 3 =>
+  +
+1  *
+  2 3
+
+1 * 2 + 3 // 当到2时, 因为 * > + 所以直接返回2, 然后 1*2作为 left
+    +
+  *  3
+1   2
+
+ */
+func (p *parser) _parseExpression(lastOpPrecedence int) ast.Expr {
 	// left
-	left := p.parseTerm()
+	left := p.parseUnaryExpr()
 
 	// { addOp term }
 	for {
@@ -350,10 +685,21 @@ func (p *parser) parseExpression() ast.Expr {
 		opTok := p.tok
 		opPos := p.pos
 
-		if opTok == token.ADD || opTok == token.SUB {
+		curOpPrecendence := opTok.Precedence()
+
+		// 如果上一个是 * 现在是 + 那么直接返回
+		if lastOpPrecedence > curOpPrecendence {
+			return left
+		}
+
+		switch opTok {
+		case token.ADD, token.SUB, // + -
+			token.MUL, token.QUO, token.REM, // * / %
+			token.GTR, token.EQL, token.LSS, token.GEQ, token.LEQ, token.NEQ, // > < >= <= != ==
+			token.LOR, token.LAND: // || &&
 			p.next()
 			// right
-			right := p.parseTerm()
+			right := p._parseExpression(curOpPrecendence)
 
 			// BinaryExpr再做为left
 			// 1+2 + 3 => 1+2是一个left
@@ -363,45 +709,7 @@ func (p *parser) parseExpression() ast.Expr {
 				X:     left,
 				Y:     right,
 			}
-		} else {
-			return left
-		}
-	}
-}
-
-/*
-term -> factor { mulop factor }
-mulop -> "*" | "/" | "%"
-factor -> NUM | "(" expression ")"
-
-Term = UnaryExpr { mulop UnaryExpr }
-UnaryExpr  = PrimaryExpr | unary_op UnaryExpr .
-PrimaryExpr -> BasicLit | "(" Expression ")" | MethodExpr
-BasicLit    = int_lit | float_lit | imaginary_lit | rune_lit | string_lit .
-
-*/
-func (p *parser) parseTerm() ast.Expr {
-	// left
-	left := p.parseUnaryExpr()
-
-	for {
-		// op
-		opTok := p.tok
-		opPos := p.pos
-
-		if opTok == token.MUL || opTok == token.QUO || opTok == token.REM {
-			p.next()
-			right := p.parseUnaryExpr()
-
-			// BinaryExpr再做为left
-			// 1*2 *3 3 => 1*2是一个left
-			left = &ast.BinaryExpr{
-				Op:    opTok,
-				OpPos: opPos,
-				X:     left,
-				Y:     right,
-			}
-		} else {
+		default:
 			return left
 		}
 	}
@@ -484,6 +792,23 @@ func (p *parser) atComma(context string, follow token.Token) bool {
 		return true // "insert" comma and continue
 	}
 	return false
+}
+
+func (p *parser) expectSemi() {
+	// semicolon is optional before a closing ')' or '}'
+	if p.tok != token.RPAREN && p.tok != token.RBRACE && p.tok != token.EOF {
+		switch p.tok {
+		case token.COMMA:
+			// permit a ',' instead of a ';' but complain
+			p.errorExpected(p.pos, "';'")
+			fallthrough
+		case token.SEMICOLON:
+			p.next()
+		default:
+			p.errorExpected(p.pos, "';'")
+			// p.advance(stmtStart)
+		}
+	}
 }
 
 

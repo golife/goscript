@@ -46,7 +46,7 @@ const (
 	LBRACE // {
 	RBRACE // }
 
-	COMMA // ,
+	COMMA     // ,
 	SEMICOLON // ;
 
 	EQL // ==
@@ -57,6 +57,9 @@ const (
 	NEQ // !=
 	LEQ // <=
 	GEQ // >=
+
+	LAND // &&
+	LOR  // ||
 
 	ASSIGN // =
 	DEFINE // :=
@@ -101,9 +104,13 @@ var tokens = [...]string{
 	ASSIGN: "=",
 	NOT:    "!",
 
-	NEQ:    "!=",
-	LEQ:    "<=",
-	GEQ:    ">=",
+	NEQ: "!=",
+	LEQ: "<=",
+	GEQ: ">=",
+
+	LAND: "&&",
+	LOR:  "||",
+
 	DEFINE: ":=",
 
 	LPAREN: "(",
@@ -114,8 +121,8 @@ var tokens = [...]string{
 	RBRACK: "]",
 	RBRACE: "}",
 
-	COMMA: ",",
-	SEMICOLON: ":",
+	COMMA:     ",",
+	SEMICOLON: ";",
 
 	ELSE: "else",
 	FOR:  "for",
@@ -171,4 +178,31 @@ func (t Token) String() string {
 
 func (t Token) Valid() bool {
 	return t > tok_start && t < tok_end
+}
+
+const (
+	LowestPrec  = 0 // non-operators
+	UnaryPrec   = 6
+	HighestPrec = 7
+)
+
+// 操作符优先级
+// Precedence returns the operator precedence of the binary
+// operator op. If op is not a binary operator, the result
+// is LowestPrecedence.
+//
+func (op Token) Precedence() int {
+	switch op {
+	case LOR:
+		return 1
+	case LAND:
+		return 2
+	case EQL, NEQ, LSS, LEQ, GTR, GEQ:
+		return 3
+	case ADD, SUB:
+		return 4
+	case MUL, QUO, REM:
+		return 5
+	}
+	return LowestPrec
 }

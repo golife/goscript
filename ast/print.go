@@ -89,6 +89,43 @@ func print(node Node, level int) {
 		}
 	case *ExprStmt:
 		print(n.X, level)
+	case *FuncStmt:
+		fmt.Println("func: ", n.Name.Name)
+		printPrefix(level)
+		fmt.Println("args: ")
+		for _, v := range n.Type.Params.List {
+			printPrefix(level+1)
+			printIdens(v.Names)
+			print(v.Type, level+1)
+		}
+
+		fmt.Println("return: ")
+		if n.Type.Results != nil {
+			for _, v := range n.Type.Results.List {
+				printPrefix(level+1)
+				printIdens(v.Names)
+				print(v.Type, level+1)
+			}
+		} else {
+			printPrefix(level+1)
+			fmt.Println("空返回")
+		}
+		fmt.Println("body: ")
+		if n.Body != nil {
+			for _, v := range n.Body.List {
+				print(v, level+1)
+			}
+		}
+	case *IfStmt:
+		fmt.Println("if condition: ")
+		print(n.Cond, level+1)
+		fmt.Println("if body: ")
+		if n.Body != nil {
+			for _, v := range n.Body.List {
+				print(v, level+1)
+			}
+		}
+
 	default:
 		fmt.Println("dunno what I got...that can't be good")
 		fmt.Println(n)
